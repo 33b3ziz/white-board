@@ -1,8 +1,12 @@
 import { useEffect } from 'react'
 import { useCanvas, useCanvasEvents } from '@/hooks/use-canvas'
-import { useDrawingTools, useKeyboardShortcuts } from '@/hooks/use-drawing-tools'
+import { useDrawingTools, useKeyboardShortcuts, useZoomPan } from '@/hooks/use-drawing-tools'
 
-export function Whiteboard() {
+interface WhiteboardProps {
+  boardId?: string
+}
+
+export function Whiteboard({ boardId }: WhiteboardProps) {
   const { canvasRef, canvas, initCanvas } = useCanvas()
 
   // Initialize canvas on mount
@@ -18,6 +22,9 @@ export function Whiteboard() {
 
   // Set up keyboard shortcuts
   useKeyboardShortcuts(canvas)
+
+  // Set up zoom and pan
+  useZoomPan(canvas)
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-gray-100">
