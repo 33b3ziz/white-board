@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Pencil, Users, Download, Layers } from 'lucide-react'
+import { Pencil, Users, Download, Layers, LayoutDashboard } from 'lucide-react'
+import { useAuthStore } from '@/stores/auth-store'
+import { AuthDialog } from '@/components/auth/auth-dialog'
 
 export const Route = createFileRoute('/')({ component: App })
 
 function App() {
+  const { user, token } = useAuthStore()
   const features = [
     {
       icon: <Pencil className="w-12 h-12 text-cyan-400" />,
@@ -48,13 +51,26 @@ function App() {
             Draw, annotate, and collaborate in real-time. Perfect for
             brainstorming, teaching, and creative work.
           </p>
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               to="/board"
               className="px-8 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-cyan-500/50"
             >
               Start Drawing
             </Link>
+            {token ? (
+              <Link
+                to="/dashboard"
+                className="px-8 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+              >
+                <LayoutDashboard className="w-5 h-5" />
+                My Boards
+              </Link>
+            ) : (
+              <div className="px-4 py-2">
+                <AuthDialog />
+              </div>
+            )}
           </div>
         </div>
       </section>
