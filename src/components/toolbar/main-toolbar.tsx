@@ -27,6 +27,7 @@ import {
   Undo2,
   Redo2,
   Trash2,
+  Save,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useToolsStore } from '@/stores/tools-store'
@@ -35,6 +36,9 @@ import { useHistory } from '@/hooks/use-history'
 import { clearCanvas } from '@/lib/canvas/fabric-utils'
 import { ColorPicker } from './color-picker'
 import { BrushSettings } from './brush-settings'
+import { ZoomControls } from './zoom-controls'
+import { LayersPanel } from './layers-panel'
+import { ExportDialog } from './export-dialog'
 import type { ToolType } from '@/types/tools'
 
 const tools: { id: ToolType; icon: typeof MousePointer2; label: string; shortcut: string }[] = [
@@ -47,9 +51,14 @@ const tools: { id: ToolType; icon: typeof MousePointer2; label: string; shortcut
   { id: 'text', icon: Type, label: 'Text', shortcut: 'T' },
 ]
 
-export function MainToolbar() {
+interface MainToolbarProps {
+  boardId?: string
+}
+
+export function MainToolbar({ boardId = 'default' }: MainToolbarProps) {
   const { activeTool, setActiveTool, brushSettings, setBrushColor } = useToolsStore()
-  const { canvas } = useCanvasStore()
+  const canvas = useCanvasStore((state) => state.canvas)
+  const saveToLocalStorage = useCanvasStore((state) => state.saveToLocalStorage)
   const { undo, redo, canUndo, canRedo, clearHistory } = useHistory()
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
 
@@ -59,6 +68,10 @@ export function MainToolbar() {
       clearHistory()
     }
     setClearDialogOpen(false)
+  }
+
+  const handleSave = () => {
+    saveToLocalStorage(boardId)
   }
 
   return (
@@ -142,6 +155,29 @@ export function MainToolbar() {
         </Tooltip>
 
         <Separator orientation="vertical" className="h-8" />
+
+        {/* Zoom Controls */}
+        <ZoomControls />
+
+        <Separator orientation="vertical" className="h-8" />
+
+        {/* Layers Panel */}
+        <LayersPanel />
+
+        {/* Export Dialog */}
+        <ExportDialog />
+
+        {/* Save to Local Storage */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="outline" size="icon" onClick={handleSave}>
+              <Save className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Save to Browser</p>
+          </TooltipContent>
+        </Tooltip>
 
         {/* Clear Canvas */}
         <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>

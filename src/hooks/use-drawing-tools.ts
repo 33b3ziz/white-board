@@ -164,7 +164,19 @@ export function useDrawingTools(canvas: Canvas | null) {
 
 export function useKeyboardShortcuts(canvas: Canvas | null) {
   const { setActiveTool } = useToolsStore()
-  const { undo, redo, canUndo, canRedo } = useCanvasStore()
+  const {
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    copy,
+    paste,
+    duplicate,
+    zoomIn,
+    zoomOut,
+    resetZoom,
+    saveToHistory,
+  } = useCanvasStore()
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -174,6 +186,14 @@ export function useKeyboardShortcuts(canvas: Canvas | null) {
         e.target instanceof HTMLTextAreaElement
       ) {
         return
+      }
+
+      // Check if editing text in canvas
+      if (canvas) {
+        const activeObject = canvas.getActiveObject()
+        if (activeObject?.type === 'i-text' && (activeObject as unknown as { isEditing?: boolean }).isEditing) {
+          return
+        }
       }
 
       // Undo/Redo
@@ -192,6 +212,46 @@ export function useKeyboardShortcuts(canvas: Canvas | null) {
         return
       }
 
+      // Copy
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault()
+        copy()
+        return
+      }
+
+      // Paste
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        e.preventDefault()
+        paste()
+        return
+      }
+
+      // Duplicate
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault()
+        duplicate()
+        return
+      }
+
+      // Zoom shortcuts
+      if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+')) {
+        e.preventDefault()
+        zoomIn()
+        return
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+        e.preventDefault()
+        zoomOut()
+        return
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+        e.preventDefault()
+        resetZoom()
+        return
+      }
+
       // Delete selected objects
       if ((e.key === 'Delete' || e.key === 'Backspace') && canvas) {
         const activeObject = canvas.getActiveObject()
@@ -201,6 +261,7 @@ export function useKeyboardShortcuts(canvas: Canvas | null) {
           canvas.remove(activeObject)
           canvas.discardActiveObject()
           canvas.requestRenderAll()
+          saveToHistory()
         }
       }
 
@@ -221,11 +282,77 @@ export function useKeyboardShortcuts(canvas: Canvas | null) {
         setActiveTool(tool)
       }
     },
-    [canvas, setActiveTool, undo, redo, canUndo, canRedo]
+    [canvas, setActiveTool, undo, redo, canUndo, canRedo, copy, paste, duplicate, zoomIn, zoomOut, resetZoom, saveToHistory]
   )
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
+}
+
+// Hook for zoom with mouse wheel
+export function useZoomPan(canvas: Canvas | null) {
+  const { setZoom, zoom, isPanning, setIsPanning } = useCanvasStore()
+
+  useEffect(() => {
+    if (!canvas) return
+
+    const handleWheel = (opt: { e: WheelEvent }) => {
+      const e = opt.e
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault()
+        e.stopPropagation()
+
+        const delta = e.deltaY
+        const zoomFactor = 0.999 ** delta
+        const newZoom = zoom * zoomFactor
+
+        const point = canvas.getScenePoint(e)
+        canvas.zoomToPoint(point, Math.max(0.1, Math.min(5, newZoom)))
+        setZoom(Math.max(0.1, Math.min(5, newZoom)))
+      }
+    }
+
+    const handleMouseDown = (opt: { e: MouseEvent }) => {
+      if (opt.e.button === 1 || (opt.e.button === 0 && opt.e.shiftKey)) {
+        // Middle mouse button or shift+left click
+        setIsPanning(true)
+        canvas.selection = false
+        canvas.setCursor('grabbing')
+      }
+    }
+
+    const handleMouseMove = (opt: { e: MouseEvent }) => {
+      if (!isPanning) return
+
+      const e = opt.e
+      const vpt = canvas.viewportTransform
+      if (!vpt) return
+
+      vpt[4] += e.movementX
+      vpt[5] += e.movementY
+      canvas.requestRenderAll()
+    }
+
+    const handleMouseUp = () => {
+      if (isPanning) {
+        setIsPanning(false)
+        canvas.selection = true
+        canvas.setCursor('default')
+      }
+    }
+
+    canvas.on('mouse:wheel', handleWheel)
+    canvas.on('mouse:down', handleMouseDown)
+    canvas.on('mouse:move', handleMouseMove)
+    canvas.on('mouse:up', handleMouseUp)
+
+    return () => {
+      canvas.off('mouse:wheel', handleWheel)
+      canvas.off('mouse:down', handleMouseDown)
+      canvas.off('mouse:move', handleMouseMove)
+      canvas.off('mouse:up', handleMouseUp)
+    }
+  }, [canvas, zoom, isPanning, setZoom, setIsPanning])
 }
