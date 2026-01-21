@@ -39,6 +39,8 @@ import { BrushSettings } from './brush-settings'
 import { ZoomControls } from './zoom-controls'
 import { LayersPanel } from './layers-panel'
 import { ExportDialog } from './export-dialog'
+import { AuthDialog } from '@/components/auth/auth-dialog'
+import { UserPresence } from '@/components/collaboration/user-presence'
 import type { ToolType } from '@/types/tools'
 
 const tools: { id: ToolType; icon: typeof MousePointer2; label: string; shortcut: string }[] = [
@@ -211,6 +213,17 @@ export function MainToolbar({ boardId = 'default' }: MainToolbarProps) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* User Presence (collaboration) */}
+        <UserPresence />
+
+        <Separator orientation="vertical" className="h-8" />
+
+        {/* Auth */}
+        <AuthDialog />
       </div>
     </TooltipProvider>
   )
